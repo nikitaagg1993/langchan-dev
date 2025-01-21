@@ -16,7 +16,16 @@ export async function POST(req: Request) {
   const parser = new StringOutputParser();
   const chain = prompt.pipe(model).pipe(parser);
 
-  const result = await chain.invoke(input);
+  const result = await chain.stream(input);
+
+  return new Response(result, {
+    headers: {
+      Connection: "keep-alive",
+      "Content-Encoding": "none",
+      "Cache-Control": "no-cache, no-transform",
+      "Content-Type": "text/event-stream; charset=utf-8",
+    },
+  });
 
   return Response.json(result);
 }

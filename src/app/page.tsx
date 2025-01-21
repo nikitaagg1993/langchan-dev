@@ -21,6 +21,7 @@ const Home = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [incomingMessage, setIncomingMessage] = useState("");
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -35,6 +36,36 @@ const Home = () => {
       body: JSON.stringify({ prompt }),
     });
 
+    if (!response.body) return;
+
+    const reader = response.body
+      .pipeThrough(new TextDecoderStream())
+      .getReader();
+
+    if (reader) setIsLoading(false);
+
+    let incomingMessage = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (done) {
+        setMessages((prevState) => [
+          ...prevState,
+          { isUser: false, text: incomingMessage },
+        ]);
+
+        setIncomingMessage("");
+
+        break;
+      }
+
+      if (value) {
+        incomingMessage += value;
+
+        setIncomingMessage(incomingMessage);
+      }
+    }
     // TODO
   };
 
@@ -44,6 +75,9 @@ const Home = () => {
         {messages.map((message, index) => (
           <ChatMessageItem key={index} message={message} />
         ))}
+        {incomingMessage && (
+          <ChatMessageItem message={{ isUser: false, text: incomingMessage }} />
+        )}
       </div>
 
       {isLoading && <p>Loading...</p>}
